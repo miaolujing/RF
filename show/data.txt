@@ -1,0 +1,447 @@
+*** Settings ***
+Library           Collections
+Library           YamlLibrary
+Library           CustomLibrary
+Library           DateTime
+Library           DatabaseLibrary
+Resource          DEFINE.txt
+Library           RequestsLibrary
+
+*** Test Cases ***
+1.1测试非baseauth数据源400
+    ${data}    set variable    {"name":"api非basicauth","url":"http://10.1.200.10:7701/simul","basicAuth":bool(0),"class":"API网关"}
+    ${response}    nget_errcode    ${host}/api/datasource/test    post    ${data}
+    should be equal as strings    ${response}    404
+    sleep    500ms
+
+1.2测试baseauth数据源400
+    ${data}    set variable    {"name":"apibasicauth","url":"http://10.1.200.10:7701/simlate","port":"","databaseName":"","basicAuth":bool(1),"userName":"demo","password":"demo1234","class":"API网关"}
+    ${response}    nget_errcode    ${host}/api/datasource/test    post    ${data}
+    should be equal as strings    ${response}    404
+    sleep    500ms
+
+1.3测试mysql数据源400
+    ${data}    set variable    {"name":"mysql","port":"3306","databaseName":"showtestdata","userName":"showtestdata","password":"Showtestdata123!","basicAuth":bool(0),"url":"10.1.53.245","class":"MySQL"}
+    ${response}    nget_errcode    ${host}/api/datasource/test    post    ${data}
+    should be equal as strings    ${response}    400
+    sleep    500ms
+
+1.4测试baseauth数据源402
+    ${data}    set variable    {"name":"apibasicauth","url":"http://10.1.200.10:7701/baseAuth","port":"","databaseName":"","basicAuth":bool(1),"userName":"demo","password":"demo","class":"API网关"}
+    ${response}    nget_errcode    ${host}/api/datasource/test    post    ${data}
+    should be equal as strings    ${response}    402
+    sleep    500ms
+
+1.5测试mysql数据源402
+    ${data}    set variable    {"class":"MySQL","name":"mysql","port":"3306","databaseName":"showtestdata","userName":"showtest","password":"Showtestdata123!","basicAuth":bool(0),"url":"10.1.53.249"}
+    ${response}    nget_errcode    ${host}/api/datasource/test    post    ${data}
+    should be equal as strings    ${response}    402
+    sleep    500ms
+
+1.6测试非baseauth数据源200
+    ${data}    set variable    {"name":"api非basicauth","url":"http://10.1.200.10:7701/simulate","basicAuth":bool(0),"class":"API网关"}
+    ${response}    nget_errcode    ${host}/api/datasource/test    post    ${data}
+    should be equal as strings    ${response}    200
+    sleep    500ms
+
+1.7测试baseauth数据源200
+    ${data}    set variable    {"name":"apibasicauth","url":"http://10.1.200.10:7701/baseAuth","basicAuth":bool(1),"userName":"demo","password":"demo1234","class":"API网关"}
+    ${response}    nget_errcode    ${host}/api/datasource/test    post    ${data}
+    should be equal as strings    ${response}    200
+    sleep    500ms
+
+1.8测试mysql数据源200
+    ${data}    set variable    {"name":"mysql","port":"3306","databaseName":"showtestdata","userName":"showtestdata","password":"Showtestdata123!","basicAuth":bool(0),"url":"10.1.53.249","class":"MySQL"}
+    ${response}    nget_errcode    ${host}/api/datasource/test    post    ${data}
+    should be equal as strings    ${response}    200
+    sleep    500ms
+
+1.9新建非baseauth数据源
+    ${data}    set variable    {"name":"api非basicauth","url":"http://10.1.200.10:7701/simulate","class":"API网关"}
+    ${response}    nreq    ${host}/api/datasource    post    ${data}
+    Should Be Equal As Integers    200    ${response.status_code}
+    ${errCode}    get tree    ${response.content}    errCode
+    should be equal as strings    ${errCode}    200
+    ${id}    get tree    ${response.content}    data.id
+    ${name}    get tree    ${response.content}    data.name
+    should be equal as strings    ${name}    api非basicauth
+    ${db_id}    con db    select id from data_source where tenant_id ='${租户id}' and `name` = '${name}' and is_delete = '0'
+    should be equal as strings    ${db_id}    ${id}
+    sleep    1s
+
+1.10新建baseauth数据源
+    ${data}    set variable    {"name":"apibasicauth","url":"http://10.1.200.10:7701/baseAuth","basicAuth":bool(1),"class":"API网关","userName":"demo","password":"demo1234"}
+    ${response}    nreq    ${host}/api/datasource    post    ${data}
+    Should Be Equal As Integers    200    ${response.status_code}
+    ${errCode}    get tree    ${response.content}    errCode
+    should be equal as strings    ${errCode}    200
+    ${id}    get tree    ${response.content}    data.id
+    ${name}    get tree    ${response.content}    data.name
+    should be equal as strings    ${name}    apibasicauth
+    ${db_id}    con db    select id from data_source where tenant_id ='${租户id}' and `name` = '${name}' and is_delete = '0'
+    should be equal as strings    ${db_id}    ${id}
+    sleep    1s
+
+1.11新建mysql数据源
+    ${data}    set variable    {"name":"mysql","class":"MySQL","port":"3306","databaseName":"showtestdata","userName":"showtestdata","password":"Showtestdata123!","url":"10.1.53.249"}
+    ${response}    nreq    ${host}/api/datasource    post    ${data}
+    Should Be Equal As Integers    200    ${response.status_code}
+    ${errCode}    get tree    ${response.content}    errCode
+    should be equal as strings    ${errCode}    200
+    ${id}    get tree    ${response.content}    data.id
+    ${name}    get tree    ${response.content}    data.name
+    should be equal as strings    ${name}    mysql
+    ${db_id}    con db    select id from data_source where tenant_id ='${租户id}' and `name` = '${name}' and is_delete = '0'
+    should be equal as strings    ${db_id}    ${id}
+    sleep    1s
+
+1.12点击非baseauth数据源设置
+    ${db_id}    con db    select id from data_source where tenant_id ='${租户id}' and `name` = 'api非basicauth' and is_delete = '0'
+    ${response}    nreq    ${host}/api/datasource/${db_id}    get
+    Should Be Equal As Integers    200    ${response.status_code}
+    ${errCode}    get tree    ${response.content}    errCode
+    should be equal as strings    ${errCode}    200
+    ${id}    get tree    ${response.content}    data.id
+    ${url}    get tree    ${response.content}    data.url
+    ${class}    get tree    ${response.content}    data.class
+    ${basicAuth}    get tree    ${response.content}    data.basicAuth
+    ${db_url}    con db    select url from data_source where tenant_id ='${租户id}' and `name` = 'api非basicauth' and is_delete = '0'
+    ${db_class}    con db    select class from data_source where tenant_id ='${租户id}' and `name` = 'api非basicauth' and is_delete = '0'
+    ${db_basicAuth}    con db    select basic_auth from data_source where tenant_id ='${租户id}' and `name` = 'api非basicauth' and is_delete = '0'
+    should be equal as strings    ${db_url}    ${url}
+    should be equal as strings    ${db_id}    ${id}
+    should be equal as strings    ${db_class}    ${class}
+    should be equal as strings    ${db_basicAuth}    ${basicAuth}
+    sleep    500ms
+
+1.13点击baseauth数据源设置
+    ${db_id}    con db    select id from data_source where tenant_id ='${租户id}' and `name` = 'apibasicauth' and is_delete = '0'
+    ${response}    nreq    ${host}/api/datasource/${db_id}    get
+    Should Be Equal As Integers    200    ${response.status_code}
+    ${errCode}    get tree    ${response.content}    errCode
+    should be equal as strings    ${errCode}    200
+    ${id}    get tree    ${response.content}    data.id
+    ${url}    get tree    ${response.content}    data.url
+    ${basicAuth}    get tree    ${response.content}    data.basicAuth
+    ${userName}    get tree    ${response.content}    data.userName
+    ${password}    get tree    ${response.content}    data.password
+    ${class}    get tree    ${response.content}    data.class
+    ${db_url}    con db    select url from data_source where tenant_id ='${租户id}' and `name` = 'apibasicauth' and is_delete = '0'
+    ${db_basicAuth}    con db    select basic_auth from data_source where tenant_id ='${租户id}' and `name` = 'apibasicauth' and is_delete = '0'
+    ${db_userName}    con db    select user_name from data_source where tenant_id ='${租户id}' and `name` = 'apibasicauth' and is_delete = '0'
+    ${db_password}    con db    select password from data_source where tenant_id ='${租户id}' and `name` = 'apibasicauth' and is_delete = '0'
+    ${db_class}    con db    select class from data_source where tenant_id ='${租户id}' and `name` = 'apibasicauth' and is_delete = '0'
+    should be equal as strings    ${db_url}    ${url}
+    should be equal as strings    ${db_id}    ${id}
+    should be equal as strings    ${db_class}    ${class}
+    should be equal as strings    ${db_userName}    ${userName}
+    should be equal as strings    ${db_password}    ${password}
+    should be equal as strings    ${db_basicAuth}    ${basicAuth}
+    sleep    500ms
+
+1.14点击mysql数据源设置
+    ${db_id}    con db    select id from data_source where tenant_id ='${租户id}' and `name` = 'mysql' and is_delete = '0'
+    ${response}    nreq    ${host}/api/datasource/${db_id}    get
+    Should Be Equal As Integers    200    ${response.status_code}
+    ${errCode}    get tree    ${response.content}    errCode
+    should be equal as strings    ${errCode}    200
+    ${id}    get tree    ${response.content}    data.id
+    ${url}    get tree    ${response.content}    data.url
+    ${basicAuth}    get tree    ${response.content}    data.basicAuth
+    ${userName}    get tree    ${response.content}    data.userName
+    ${password}    get tree    ${response.content}    data.password
+    ${class}    get tree    ${response.content}    data.class
+    ${db_url}    con db    select url from data_source where tenant_id ='${租户id}' and `name` = 'mysql' and is_delete = '0'
+    ${db_basicAuth}    con db    select basic_auth from data_source where tenant_id ='${租户id}' and `name` = 'mysql' and is_delete = '0'
+    ${db_userName}    con db    select user_name from data_source where tenant_id ='${租户id}' and `name` = 'mysql' and is_delete = '0'
+    ${db_password}    con db    select password from data_source where tenant_id ='${租户id}' and `name` = 'mysql' and is_delete = '0'
+    ${db_class}    con db    select class from data_source where tenant_id ='${租户id}' and `name` = 'mysql' and is_delete = '0'
+    should be equal as strings    ${db_url}    ${url}
+    should be equal as strings    ${db_id}    ${id}
+    should be equal as strings    ${db_class}    ${class}
+    should be equal as strings    ${db_userName}    ${userName}
+    should be equal as strings    ${db_password}    ${password}
+    should be equal as strings    ${db_basicAuth}    ${basicAuth}
+    sleep    500ms
+
+1.15测试非时区数据集test400
+    ${souce_id}    con db    select id from data_source where tenant_id ='${租户id}' and `name` = 'apibasicauth' and is_delete = '0'
+    ${data}    set variable    {"name":"cpu","url":"cc","supportTime":bool(0),"id":"${souce_id}"}
+    ${response}    nreq    ${host}/api/dataset/test    post    ${data}
+    Should Be Equal As Integers    200    ${response.status_code}
+    ${errcode}    get tree    ${response.content}    errCode
+    should be equal as strings    ${errcode}    404
+    sleep    500ms
+
+1.16测试时区数据集test400
+    ${souce_id}    con db    select id from data_source where tenant_id ='${租户id}' and `name` = 'apibasicauth' and is_delete = '0'
+    ${data}    set variable    {"name":"lineChart","url":"lineChart1","supportTime":bool(1),"startTime":"startTime","endTime":"endTime","recentTime":"1h","id":"${souce_id}"}
+    ${response}    nreq    ${host}/api/dataset/test    post    ${data}
+    Should Be Equal As Integers    200    ${response.status_code}
+    ${errcode}    get tree    ${response.content}    errCode
+    should be equal as strings    ${errcode}    404
+    sleep    500ms
+
+1.17测试mysql数据集test400
+    ${souce_id}    con db    select id from data_source where tenant_id ='${租户id}' and `name` = 'mysql' and is_delete = '0'
+    ${data}    set variable    {"name":"mysql数据集","url":"select * from text1","id":"${souce_id}","supportTime":bool(0)}
+    ${response}    nreq    ${host}/api/dataset/test    post    ${data}
+    Should Be Equal As Integers    200    ${response.status_code}
+    ${errcode}    get tree    ${response.content}    errCode
+    should be equal as strings    ${errcode}    400
+    sleep    500ms
+
+1.18测试非时区数据集test200
+    ${souce_id}    con db    select id from data_source where tenant_id ='${租户id}' and `name` = 'apibasicauth' and is_delete = '0'
+    ${data}    set variable    {"name":"cpu","url":"cpu","supportTime":bool(0),"id":"${souce_id}"}
+    ${response}    nreq    ${host}/api/dataset/test    post    ${data}
+    Should Be Equal As Integers    200    ${response.status_code}
+    ${errcode}    get tree    ${response.content}    errCode
+    should be equal as strings    ${errcode}    200
+    sleep    500ms
+
+1.19测试非时区数据field200
+    ${souce_id}    con db    select id from data_source where tenant_id ='${租户id}' and `name` = 'apibasicauth' and is_delete = '0'
+    ${data}    set variable    {"name":"cpu","url":"cpu","supportTime":bool(0),"id":"${souce_id}"}
+    ${response}    nreq    ${host}/api/dataset/field    post    ${data}
+    Should Be Equal As Integers    200    ${response.status_code}
+    ${errcode}    get tree    ${response.content}    errCode
+    should be equal as strings    ${errcode}    200
+    sleep    500ms
+
+1.20测试非时区数据data200
+    ${souce_id}    con db    select id from data_source where tenant_id ='${租户id}' and `name` = 'apibasicauth' and is_delete = '0'
+    ${data}    set variable    {"name":"cpu","url":"cpu","supportTime":bool(0),"id":"${souce_id}","field":[{"key":0,"fieldName":"time","displayName":"时间","isCheck":bool(1),"dataType":"时间"},{"key":1,"fieldName":"serverOneUsage","displayName":"服务一","isCheck":bool(1),"dataType":"文本"},{"key":2,"fieldName":"serverTwoUsage","displayName":"服务二","isCheck":bool(1),"dataType":"文本"}],"refreshTime":"10s","displayName0":"时间","dataType0":"时间","displayName1":"服务一","dataType1":"文本","displayName2":"服务二","dataType2":"文本"}
+    ${response}    nreq    ${host}/api/dataset/data    post    ${data}
+    Should Be Equal As Integers    200    ${response.status_code}
+    ${errcode}    get tree    ${response.content}    errCode
+    should be equal as strings    ${errcode}    200
+    sleep    500ms
+
+1.21测试时区数据集test200
+    ${souce_id}    con db    select id from data_source where tenant_id ='${租户id}' and `name` = 'apibasicauth' and is_delete = '0'
+    ${data}    set variable    {"name":"lineChart","url":"lineChart","supportTime":bool(1),"startTime":"startTime","endTime":"endTime","recentTime":"1h","id":"${souce_id}"}
+    ${response}    nreq    ${host}/api/dataset/test    post    ${data}
+    Should Be Equal As Integers    200    ${response.status_code}
+    ${errcode}    get tree    ${response.content}    errCode
+    should be equal as strings    ${errcode}    200
+    sleep    500ms
+
+1.22测试时区数据field200
+    ${souce_id}    con db    select id from data_source where tenant_id ='${租户id}' and `name` = 'apibasicauth' and is_delete = '0'
+    ${data}    set variable    {"name":"lineChart","url":"lineChart","supportTime":bool(1),"startTime":"startTime","endTime":"endTime","recentTime":"1h","id":"${souce_id}"}
+    ${response}    nreq    ${host}/api/dataset/field    post    ${data}
+    Should Be Equal As Integers    200    ${response.status_code}
+    ${errcode}    get tree    ${response.content}    errCode
+    should be equal as strings    ${errcode}    200
+    sleep    500ms
+
+1.23测试时区数据data200
+    ${souce_id}    con db    select id from data_source where tenant_id ='${租户id}' and `name` = 'apibasicauth' and is_delete = '0'
+    ${data}    set variable    {"name":"lineChart","url":"lineChart","supportTime":bool(1),"startTime":"startTime","endTime":"endTime","recentTime":"1h","id":"${souce_id}","field":[{"key":0,"fieldName":"timestamp","displayName":"时间","isCheck":bool(1),"dataType":"时间"},{"key":1,"fieldName":"server1","displayName":"服务一","isCheck":bool(1),"dataType":"文本"},{"key":2,"fieldName":"server2","displayName":"服务二","isCheck":bool(1),"dataType":"文本"},{"key":3,"fieldName":"server3","displayName":"服务三","isCheck":bool(1),"dataType":"文本"}],"refreshTime":"0s","displayName0":"时间","dataType0":"时间","displayName1":"服务一","dataType1":"文本","displayName2":"服务二","dataType2":"文本","displayName3":"服务三","dataType3":"文本"}
+    ${response}    nreq    ${host}/api/dataset/data    post    ${data}
+    Should Be Equal As Integers    200    ${response.status_code}
+    ${errcode}    get tree    ${response.content}    errCode
+    should be equal as strings    ${errcode}    200
+    sleep    500ms
+
+1.24测试mysql数据集test200
+    ${souce_id}    con db    select id from data_source where tenant_id ='${租户id}' and `name` = 'mysql' and is_delete = '0'
+    ${data}    set variable    {"name":"mysql数据集","url":"select * from text","id":"${souce_id}","supportTime":bool(0)}
+    ${response}    nreq    ${host}/api/dataset/test    post    ${data}
+    Should Be Equal As Integers    200    ${response.status_code}
+    ${errcode}    get tree    ${response.content}    errCode
+    should be equal as strings    ${errcode}    200
+    sleep    500ms
+
+1.25测试mysql数据field200
+    ${souce_id}    con db    select id from data_source where tenant_id ='${租户id}' and `name` = 'mysql' and is_delete = '0'
+    ${data}    set variable    {"name":"mysql数据集","url":"select * from text","supportTime":bool(0),"id":"${souce_id}"}
+    ${response}    nreq    ${host}/api/dataset/field    post    ${data}
+    Should Be Equal As Integers    200    ${response.status_code}
+    ${errcode}    get tree    ${response.content}    errCode
+    should be equal as strings    ${errcode}    200
+    sleep    500ms
+
+1.26测试mysql数据data200
+    ${souce_id}    con db    select id from data_source where tenant_id ='${租户id}' and `name` = 'mysql' and is_delete = '0'
+    ${data}    set variable    {"name":"mysql数据集","url":"select * from text","supportTime":bool(0),"id":"${souce_id}","field":[{"key":0,"fieldName":"series","displayName":"文本","isCheck":bool(1),"dataType":"文本"}],"refreshTime":"0s","displayName0":"文本","dataType0":"文本"}
+    ${response}    nreq    ${host}/api/dataset/data    post    ${data}
+    Should Be Equal As Integers    200    ${response.status_code}
+    ${errcode}    get tree    ${response.content}    errCode
+    should be equal as strings    ${errcode}    200
+    sleep    500ms
+
+1.27保存非时区数据集
+    ${souce_id}    con db    select id from data_source where tenant_id ='${租户id}' and `name` = 'apibasicauth' and is_delete = '0'
+    ${data}    set variable    {"name":"cpurf","url":"cpu","supportTime":bool(0),"field":[{"key":0,"fieldName":"time","displayName":"时间","isCheck":bool(1),"dataType":"时间"},{"key":1,"fieldName":"serverOneUsage","displayName":"服务一","isCheck":bool(1),"dataType":"文本"},{"key":2,"fieldName":"serverTwoUsage","displayName":"服务二","isCheck":bool(1),"dataType":"文本"}],"refreshTime":"10s","displayName0":"时间","dataType0":"时间","displayName1":"服务一","dataType1":"文本","displayName2":"服务二","dataType2":"文本","dataSourceId":"${souce_id}","startTime":"","endTime":""}
+    ${response}    nreq    ${host}/api/dataset/save    post    ${data}
+    Should Be Equal As Integers    200    ${response.status_code}
+    ${errCode}    get tree    ${response.content}    errCode
+    should be equal as strings    ${errCode}    200
+    ${db_id}    con db    select data_source_id from data_set where tenant_id = '${租户id}' and `name` = 'cpurf' and is_delete = '0'
+    should be equal as strings    ${db_id}    ${souce_id}
+    sleep    1s
+
+1.28保存时区数据集
+    ${souce_id}    con db    select id from data_source where tenant_id ='${租户id}' and `name` = 'apibasicauth' and is_delete = '0'
+    ${data}    set variable    {"name":"lineChartrf","url":"lineChart","supportTime":bool(1),"startTime":"startTime","endTime":"endTime","recentTime":"1h","field":[{"key":0,"fieldName":"timestamp","displayName":"时间","isCheck":bool(1),"dataType":"时间"},{"key":1,"fieldName":"server1","displayName":"服务一","isCheck":bool(1),"dataType":"文本"},{"key":2,"fieldName":"server2","displayName":"服务二","isCheck":bool(1),"dataType":"文本"},{"key":3,"fieldName":"server3","displayName":"服务三","isCheck":bool(1),"dataType":"文本"}],"refreshTime":"0s","displayName0":"时间","dataType0":"时间","displayName1":"服务一","dataType1":"文本","displayName2":"服务二","dataType2":"文本","displayName3":"服务三","dataType3":"文本","dataSourceId":"${souce_id}"}
+    ${response}    nreq    ${host}/api/dataset/save    post    ${data}
+    Should Be Equal As Integers    200    ${response.status_code}
+    ${errCode}    get tree    ${response.content}    errCode
+    should be equal as strings    ${errCode}    200
+    ${db_id}    con db    select data_source_id from data_set where tenant_id = '${租户id}' and `name` = 'lineChartrf' and is_delete = '0'
+    should be equal as strings    ${db_id}    ${souce_id}
+    sleep    1s
+
+1.29保存mysql数据集
+    ${souce_id}    con db    select id from data_source where tenant_id ='${租户id}' and `name` = 'mysql' and is_delete = '0'
+    ${data}    set variable    {"name":"mysql数据集rf","url":"select * from text","supportTime":bool(0),"field":[{"key":0,"fieldName":"series","displayName":"文本","isCheck":bool(1),"dataType":"文本"}],"refreshTime":"0s","displayName0":"文本","dataType0":"文本","dataSourceId":"${souce_id}","startTime":"","endTime":""}
+    ${response}    nreq    ${host}/api/dataset/save    post    ${data}
+    Should Be Equal As Integers    200    ${response.status_code}
+    ${errCode}    get tree    ${response.content}    errCode
+    should be equal as strings    ${errCode}    200
+    ${db_id}    con db    select data_source_id from data_set where tenant_id = '${租户id}' and `name` = 'mysql数据集rf' and is_delete = '0'
+    should be equal as strings    ${db_id}    ${souce_id}
+    sleep    1s
+
+1.30点击非时区数据集设置
+    ${db_id}    con db    select `id` from data_set where tenant_id = '${租户id}' and `name` = 'cpurf' and is_delete = '0'
+    ${response}    nreq    ${host}/api/dataset/${db_id}    get
+    Should Be Equal As Integers    200    ${response.status_code}
+    ${url}    get tree    ${response.content}    data.url
+    ${supportTime}    get tree    ${response.content}    data.supportTime
+    ${db_url}    con db    select url from data_set where tenant_id = '${租户id}' and `name` = 'cpurf' and is_delete = '0'
+    ${db_supportTime}    con db    select support_time from data_set where tenant_id = '${租户id}' and `name` = 'cpurf' and is_delete = '0'
+    should be equal as strings    ${db_url}    ${url}
+    should be equal as strings    ${db_supportTime}    ${supportTime}
+    ${fielddata_db}    field db    select field_name,display_name from data_set_field WHERE data_set_id = '${db_id}'
+    ${keepField}    get tree    ${response.content}    data.keepField
+    ${check}    check field    ${fielddata_db}    ${keepField}
+    should be equal as strings    ${check}    suss
+    sleep    500ms
+
+1.31点击时区数据集设置
+    ${db_id}    con db    select `id` from data_set where tenant_id = '${租户id}' and `name` = 'lineChartrf' and is_delete = '0'
+    ${response}    nreq    ${host}/api/dataset/${db_id}    get
+    Should Be Equal As Integers    200    ${response.status_code}
+    ${url}    get tree    ${response.content}    data.url
+    ${supportTime}    get tree    ${response.content}    data.supportTime
+    ${db_url}    con db    select url from data_set where tenant_id = '${租户id}' and `name` = 'lineChartrf' and is_delete = '0'
+    ${db_supportTime}    con db    select support_time from data_set where tenant_id = '${租户id}' and `name` = 'lineChartrf' and is_delete = '0'
+    should be equal as strings    ${db_url}    ${url}
+    should be equal as strings    ${db_supportTime}    ${supportTime}
+    ${fielddata_db}    field db    select field_name,display_name from data_set_field WHERE data_set_id = '${db_id}'
+    ${keepField}    get tree    ${response.content}    data.keepField
+    ${check}    check field    ${fielddata_db}    ${keepField}
+    should be equal as strings    ${check}    suss
+    sleep    500ms
+
+1.32点击mysql数据集设置
+    ${db_id}    con db    select `id` from data_set where tenant_id = '${租户id}' and `name` = 'mysql数据集rf' and is_delete = '0'
+    ${response}    nreq    ${host}/api/dataset/${db_id}    get
+    Should Be Equal As Integers    200    ${response.status_code}
+    ${url}    get tree    ${response.content}    data.url
+    ${supportTime}    get tree    ${response.content}    data.supportTime
+    ${db_url}    con db    select url from data_set where tenant_id = '${租户id}' and `name` = 'mysql数据集rf' and is_delete = '0'
+    ${db_supportTime}    con db    select support_time from data_set where tenant_id = '${租户id}' and `name` = 'mysql数据集rf' and is_delete = '0'
+    should be equal as strings    ${db_url}    ${url}
+    should be equal as strings    ${db_supportTime}    ${supportTime}
+    ${fielddata_db}    field db    select field_name,display_name from data_set_field WHERE data_set_id = '${db_id}'
+    ${keepField}    get tree    ${response.content}    data.keepField
+    ${check}    check field    ${fielddata_db}    ${keepField}
+    should be equal as strings    ${check}    suss
+    sleep    500ms
+
+1.33获取所有数据源名称
+    ${response}    nreq    ${host}/api/datasource/names    get
+    Should Be Equal As Integers    200    ${response.status_code}
+    ${data}    get tree    ${response.content}    data
+    ${db_data}    field db    select id,`name` from data_source t where tenant_id = '${租户id}' and is_delete = '0'
+    ${check}    check datasource    ${db_data}    ${data}
+    should be equal as strings    ${check}    suss
+    sleep    500ms
+
+1.34api数据集编辑不修改结构test400
+    ${db_id}    con db    select `id` from data_set where tenant_id = '${租户id}' and `name` = 'cpurf' and is_delete = '0'
+    ${data}    set variable    {"name":"cpurf1","url":"cc","supportTime":bool(0)}
+    ${response}    nreq    ${host}/api/dataset/test/${db_id}    put    ${data}
+    Should Be Equal As Integers    200    ${response.status_code}
+    ${errcode}    get tree    ${response.content}    errCode
+    should be equal as strings    ${errcode}    400
+    sleep    500ms
+
+1.35数据集编辑test200
+    ${db_id}    con db    select `id` from data_set where tenant_id = '${租户id}' and `name` = 'cpurf' and is_delete = '0'
+    ${data}    set variable    {"name":"cpurf1","url":"cpu","supportTime":bool(0)}
+    ${response}    nreq    ${host}/api/dataset/test/${db_id}    put    ${data}
+    Should Be Equal As Integers    200    ${response.status_code}
+    ${errcode}    get tree    ${response.content}    errCode
+    should be equal as strings    ${errcode}    200
+    sleep    500ms
+
+1.36数据集编辑下一步1
+    ${db_id}    con db    select `id` from data_set where tenant_id = '${租户id}' and `name` = 'cpurf' and is_delete = '0'
+    ${data}    set variable    {"name":"cpurf","url":"cpu","supportTime":bool(0)}
+    ${response}    nreq    ${host}/api/dataset/field/${db_id}    put    ${data}
+    Should Be Equal As Integers    200    ${response.status_code}
+    ${errcode}    get tree    ${response.content}    errCode
+    should be equal as strings    ${errcode}    200
+    sleep    500ms
+
+1.37数据集编辑下一步2
+    ${db_id}    con db    select `id` from data_set where tenant_id = '${租户id}' and `name` = 'cpurf' and is_delete = '0'
+    ${data}    set variable    {"name":"cpurf","url":"cpu","supportTime":bool(1),"field":[{"fieldName":"time","displayName":"时间","dataType":"时间","isCheck":bool(1)},{"fieldName":"serverTwoUsage","displayName":"服务二","dataType":"文本","isCheck":bool(0)},{"fieldName":"serverOneUsage","displayName":"服务一","dataType":"文本","isCheck":bool(0)}],"refreshTime":"10s","displayName0":"时间","dataType0":"时间","displayName1":"服务二","dataType1":"文本","displayName2":"服务一","dataType2":"文本"}
+    ${response}    nreq    ${host}/api/dataset/data/${db_id}?page=All    put    ${data}
+    Should Be Equal As Integers    200    ${response.status_code}
+    ${errcode}    get tree    ${response.content}    errCode
+    should be equal as strings    ${errcode}    200
+    sleep    500ms
+
+1.38保存修改的数据集
+    ${db_id}    con db    select `id` from data_set where tenant_id = '${租户id}' and `name` = 'cpurf' and is_delete = '0'
+    ${data}    set variable    {"name":"cpurf1","url":"cpu","supportTime":bool(0),"field":[{"fieldName":"time","displayName":"时间","dataType":"时间","isCheck":bool(1)},{"fieldName":"serverTwoUsage","displayName":"服务二","dataType":"文本","isCheck":bool(1)},{"fieldName":"serverOneUsage","displayName":"服务一","dataType":"文本","isCheck":bool(1)}],"refreshTime":"10s","displayName0":"时间","dataType0":"时间","displayName1":"服务二","dataType1":"文本","displayName2":"服务一","dataType2":"文本"}
+    ${response}    nreq    ${host}/api/dataset/update/${db_id}    put    ${data}
+    Should Be Equal As Integers    200    ${response.status_code}
+    ${errcode}    get tree    ${response.content}    errCode
+    should be equal as strings    ${errcode}    200
+    ${new_name}    con db    select `name` from data_set where tenant_id = '${租户id}' and `id` = '${db_id}' and is_delete = '0'
+    should be equal as strings    ${new_name}    cpurf1
+    sleep    1s
+
+1.39删除数据集
+    ${id1}    con db    select id from data_set where tenant_id = '${租户id}' and `name` = 'cpurf1' and is_delete = '0'
+    ${id2}    con db    select id from data_set where tenant_id = '${租户id}' and `name` = 'lineChartrf' and is_delete = '0'
+    ${id3}    con db    select id from data_set where tenant_id = '${租户id}' and `name` = 'mysql数据集rf' and is_delete = '0'
+    ${response1}    nreq    ${host}/api/dataset/${id1}    delete
+    ${response2}    nreq    ${host}/api/dataset/${id2}    delete
+    ${response3}    nreq    ${host}/api/dataset/${id3}    delete
+    should be equal as strings    ${response1.status_code}    200
+    should be equal as strings    ${response2.status_code}    200
+    should be equal as strings    ${response3.status_code}    200
+    sleep    500ms
+
+1.40编辑数据源
+    ${db_id}    con db    select id from data_source where tenant_id ='${租户id}' and `name` = 'api非basicauth' and is_delete = '0'
+    ${data}    set variable    {"name":"非auth改auth","url":"http://10.1.200.10:7701/baseAuth","basicAuth":bool(1),"class":"API网关","userName":"demo","password":"demo1234"}
+    ${response}    nreq    ${host}/api/datasource/${db_id}    put    ${data}
+    Should Be Equal As Integers    200    ${response.status_code}
+    ${errcode}    get tree    ${response.content}    errCode
+    ${new_id}    con db    select id from data_source where tenant_id ='${租户id}' and `name` = '非auth改auth' and is_delete = '0'
+    ${db_basicAuth}    con db    select basic_auth from data_source where tenant_id ='${租户id}' and `name` = '非auth改auth' and is_delete = '0'
+    should be equal as strings    ${errcode}    200
+    should be equal as strings    ${new_id}    ${db_id}
+    should be equal as strings    ${db_basicAuth}    1
+    sleep    500ms
+
+1.41删除数据源
+    ${id1}    con db    select id from data_source where tenant_id ='${租户id}' and `name` = '非auth改auth' and is_delete = '0'
+    ${id2}    con db    select id from data_source where tenant_id ='${租户id}' and `name` = 'apibasicauth' and is_delete = '0'
+    ${id3}    con db    select id from data_source where tenant_id ='${租户id}' and `name` = 'mysql' and is_delete = '0'
+    ${response1}    nreq    ${host}/api/datasource/${id1}    delete
+    ${response2}    nreq    ${host}/api/datasource/${id2}    delete
+    ${response3}    nreq    ${host}/api/datasource/${id3}    delete
+    should be equal as strings    ${response1.status_code}    200
+    should be equal as strings    ${response2.status_code}    200
+    should be equal as strings    ${response3.status_code}    200
+    sleep    500ms

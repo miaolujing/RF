@@ -1,0 +1,129 @@
+*** Settings ***
+Resource          DEFINE.txt
+Library           Collections
+Library           YamlLibrary
+Library           CustomLibrary
+Library           DateTime
+Library           DatabaseLibrary
+
+*** Test Cases ***
+1.1获取窗口墙设置
+    ${response}    nreq    ${host}/api/wall    get
+    should be equal as strings    ${response.status_code}    200
+    ${bg}    get tree    ${response.content}    data.bg
+    ${bg_db}    con db    select bg from window_wall where tenant_id='${租户id}'
+    should be equal as strings    ${bg_db}    ${bg}
+    sleep    500ms
+
+1.2保存窗口墙
+    ${data}    Makeup Windowall Data
+    ${response}    req    {'email':'${email}','passwd':'${passwd}'}    ${host}/api/wall/0    put    ${data}    type=2
+    should be equal as strings    ${response.status_code}    200
+    ${errcode}    get tree    ${response.content}    errCode
+    ${message}    get tree    ${response.content}    message
+    should be equal as strings    ${errcode}    200
+    should be equal as strings    ${message}    成功
+    sleep    500ms
+
+1.3获取窗口list
+    ${response}    nreq    ${host}/api/window    get
+    should be equal as strings    ${response.status_code}    200
+    ${errCode}    get tree    ${response.content}    errCode
+    should be equal as strings    ${errCode}    200
+    ${data}    get tree    ${response.content}    data
+    Should Not Be Empty    ${data}
+    sleep    500ms
+
+1.4获取一個窗口的所有配置
+    ${response}    nreq    ${host}/api/window/${接口测试窗口id}    get
+    should be equal as strings    ${response.status_code}    200
+    ${id}    get tree    ${response.content}    data.window.id
+    ${wid}    get tree    ${response.content}    data.widgets.0.buuid
+    ${wfid}    get tree    ${response.content}    data.widgets.0.fuuid
+    ${styleSetting}    get tree    ${response.content}    data.widgets.0.styleSetting
+    should be equal as strings    ${id}    ${接口测试窗口id}
+    should be equal as strings    ${wid}    ${接口测试部件id}
+    should be equal as strings    ${wfid}    ${接口测试部件fid}
+    Should Not Be Empty    ${styleSetting}
+    sleep    500ms
+
+1.5创建之后删除窗口
+    ${data}    set variable    {"title":"测试增删窗口"}
+    ${response}    nreq    ${host}/api/window    post    ${data}
+    should be equal as strings    ${response.status_code}    200
+    ${errCode}    get tree    ${response.content}    errCode
+    should be equal as strings    ${errCode}    200
+    ${id}    get tree    ${response.content}    data.id
+    ${response2}    nreq    ${host}/api/window/${id}    delete
+    should be equal as strings    ${response2.status_code}    200
+    ${title}    get tree    ${response2.content}    data.title
+    should be equal as strings    ${title}    测试增删窗口
+    ${is_del}    con db    select is_delete from window where id='${id}'
+    should be equal as strings    1    ${is_del}
+    sleep    500ms
+
+1.6创建窗口(名称为空)
+    ${data}    set variable    {'title':''}
+    ${response}    nreq    ${host}/api/window    post    ${data}
+    should be equal as strings    ${response.status_code}    404
+    ${message}    get tree    ${response.content}    message
+    Should Be Equal As Strings    ${message}    没有设置窗口名称
+    sleep    500ms
+
+1.7创建窗口(最长)
+    ${data}    set variable    {'title':'1234567891234567'}
+    ${response}    nreq    ${host}/api/window    post    ${data}
+    should be equal as strings    ${response.status_code}    200
+    ${message}    get tree    ${response.content}    message
+    Should Be Equal As Strings    ${message}    success
+    ${id}    get tree    ${response.content}    data.id
+    ${response2}    nreq    ${host}/api/window/${id}    delete
+    should be equal as strings    ${response2.status_code}    200
+    sleep    500ms
+
+1.8创建窗口(最长+1)
+    ${data}    set variable    {'title':'12345678912345678'}
+    ${response}    nreq    ${host}/api/window    post    ${data}
+    should be equal as strings    ${response.status_code}    400
+    ${message}    get tree    ${response.content}    data.message
+    Should Be Equal As Strings    ${message}    超过了16个中英文长度
+    sleep    500ms
+
+1.9创建窗口(中文 ,最长+1)
+    ${data}    set variable    {'title':'一二三四五六七八九一二三四五六七八'}
+    ${response}    nreq    ${host}/api/window    post    ${data}
+    should be equal as strings    ${response.status_code}    400
+    ${message}    get tree    ${response.content}    data.message
+    Should Be Equal As Strings    ${message}    超过了16个中英文长度
+    sleep    500ms
+
+1.10创建窗口(特殊字符)
+    ${data}    set variable    {'title':'& ‘'}
+    ${response}    nreq    ${host}/api/window    post    ${data}
+    should be equal as strings    ${response.status_code}    200
+    ${status}    get tree    ${response.content}    message
+    Should Be Equal As Strings    ${status}    success
+    ${id}    get tree    ${response.content}    data.id
+    ${response2}    nreq    ${host}/api/window/${id}    delete
+    should be equal as strings    ${response2.status_code}    200
+    sleep    500ms
+
+1.11创建窗口(前后带空格)
+    ${data}    set variable    {'title':' 前后带空格 '}
+    ${response}    nreq    ${host}/api/window    post    ${data}
+    should be equal as strings    ${response.status_code}    200
+    ${id}    get tree    ${response.content}    data.id
+    ${response2}    nreq    ${host}/api/window/${id}    delete
+    should be equal as strings    ${response2.status_code}    200
+    sleep    500ms
+
+1.12创建窗口(null)
+    ${data}    set variable    {'title':'null'}
+    ${response}    nreq    ${host}/api/window    post    ${data}
+    should be equal as strings    ${response.status_code}    200
+    ${status}    get tree    ${response.content}    message
+    Should Be Equal As Strings    ${status}    success
+    ${id}    get tree    ${response.content}    data.id
+    ${response2}    nreq    ${host}/api/window/${id}    delete
+    should be equal as strings    ${response2.status_code}    200
+    sleep    500ms

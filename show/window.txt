@@ -1,0 +1,109 @@
+*** Settings ***
+Resource          DEFINE.txt
+Library           Collections
+Library           YamlLibrary
+Library           CustomLibrary
+Library           DateTime
+Library           DatabaseLibrary
+
+*** Test Cases ***
+1.1窗口设置
+    ${title}    con db    select title from `window` where id='${接口测试窗口id}'
+    ${screenRatio}    con db    select screen_ratio from `window` where id='${接口测试窗口id}'
+    ${keep_screen_ratio}    con db    select keep_screen_ratio from `window` where id='${接口测试窗口id}'
+    ${ratio}    Set Variable If    ${keep_screen_ratio}==1    True    ${keep_screen_ratio}==0    False
+    ${bg_type}    con db    select bg_type from `window` where id='${接口测试窗口id}'
+    ${bg_color}    con db    select bg_color from `window` where id='${接口测试窗口id}'
+    ${bg_color_opacity}    con db    select bg_color_opacity from `window` where id='${接口测试窗口id}'
+    ${bg}    con db    select bg from `window` where id='${接口测试窗口id}'
+    ${data}    Set Variable    {"window":{"id":"${接口测试窗口id}","title":"${title}","screenRatio":"${screenRatio}","keepScreenRatio":${ratio},"bgType":${bg_type},"bgColor":"${bg_color}","bgColorOpacity":${bg_color_opacity},"bg":"${bg}"}}
+    ${response}    nreq    ${host}/api/window/${接口测试窗口id}    put    data=${data}
+    Should Be Equal As Integers    200    ${response.status_code}
+    ${errcode}    get tree    ${response.content}    errCode
+    ${status}    get tree    ${response.content}    data.status
+    Should Be Equal As Integers    200    ${errcode}
+    Should Be Equal As Strings    success    ${status}
+    sleep    500ms
+
+1.2仅修改部件大小保存
+    ${sizex}    size_random
+    ${sizey}    size_random
+    ${data}    set variable    {"windowId":"${接口测试窗口id}","saveWidgets":[{"fuuid":"${接口测试部件fid}","buuid":"${接口测试部件id}","sizex":${sizex},"sizey":${sizey}}],"deleteWidgets":[]}
+    ${response}    nreq    ${host}/api/widgets    post    data=${data}
+    Should Be Equal As Integers    200    ${response.status_code}
+    Log    ${response.content}
+    ${errcode}    get tree    ${response.content}    errCode
+    ${sizex_db}    con db    select sizex from `widget` where id='${接口测试部件id}'
+    ${sizey_db}    con db    select sizey from `widget` where id='${接口测试部件id}'
+    ${id}    get tree    ${response.content}    data.${接口测试部件fid}.buuid
+    ${action}    get tree    ${response.content}    data.${接口测试部件fid}.action
+    Should Be Equal As Integers    200    ${errcode}
+    Should Be Equal As Strings    ${id}    ${接口测试部件id}
+    Should Be Equal As Strings    ${action}    update
+    Should Be Equal As Integers    ${sizex}    ${sizex_db}
+    Should Be Equal As Integers    ${sizey}    ${sizey_db}
+    sleep    500ms
+
+1.3仅新建部件保存后删除保存
+    ${fuid}    fuuid
+    ${data}    set variable    {"windowId":"${接口测试窗口id}","saveWidgets":[{"fuuid":"${fuid}","chart":{"type":"text","klass":"text","theme":"basic","title":"文本","image":"assets/src/modules/chart/themes/text/basic/basic.png?24a91d8b","option":{"color":["#03a9f4","#90ed7d","#e2db1a","#f79726","#0677ff","#6b2eda","#30d209","#2647ff","#b121ef","#f32d2e"],"textStyle":{"color":"#fff"},"title":{"text":"文本内容","textStyle":{"textAlign":"center","gap":1,"display":"table-cell","verticalAlign":"middle","fontSize":14,"color":"#fff","opacity":100}}}},"sizex":22,"sizey":8,"col":43,"row":32,"setting":{"title":"","fontSize":12,"textColor":"#ffffff","textColorOpacity":100,"borderColor":"","borderColorOpacity":100,"borderSize":1,"backgroundType":1,"backgroundColor":"","backgroundOpacity":100,"backgroundImage":""},"styleSetting":{"text":"文本内容","textStyle_letterSpacing":1,"textStyle_textAlign":"center","textStyle_verticalAlign":"middle","textStyle_fontSize":14,"textStyle_color":"#fff"}}],"deleteWidgets":[]}
+    ${response}    nreq    ${host}/api/widgets    post    data=${data}
+    Should Be Equal As Integers    200    ${response.status_code}
+    ${errcode}    get tree    ${response.content}    errCode
+    ${bid_db}    con db    select id from `widget` where fuu_id ='${fuid}' and window_id ='${接口测试窗口id}'
+    ${action}    get tree    ${response.content}    data.${fuid}.action
+    ${bid}    get tree    ${response.content}    data.${fuid}.buuid
+    Should Be Equal As Integers    200    ${errcode}
+    Should Be Equal As Strings    ${bid_db}    ${bid}
+    Should Be Equal As Strings    ${action}    add
+    ${data1}    set variable    {"windowId":"${接口测试窗口id}","saveWidgets":[],"deleteWidgets":[{"fuuid":"${fuid}","buuid":"${bid}"}]}
+    ${response}    nreq    ${host}/api/widgets    post    data=${data1}
+    Should Be Equal As Integers    200    ${response.status_code}
+    ${errcode}    get tree    ${response.content}    errCode
+    ${action}    get tree    ${response.content}    data.${fuid}.action
+    Should Be Equal As Strings    ${action}    delete
+    Should Be Equal As Integers    200    ${errcode}
+    ${delid_db}    empty_db    select id from `widget` where fuu_id ='${fuid}' and window_id ='${接口测试窗口id}'
+    Should Be Equal As Integers    ${delid_db}    0
+    sleep    500ms
+
+1.4修改新增保存后删除修改保存
+    ${col}    site_random
+    ${row}    site_random
+    ${sizex}    size_random
+    ${sizey}    size_random
+    ${fuid}    fuuid
+    ${data}    set variable    {"windowId":"${接口测试窗口id}","saveWidgets":[{"fuuid":"${接口测试部件fid}","buuid":"${接口测试部件id}","col":${col},"row":${row} },{"fuuid":"${fuid}","chart":{"type":"text","klass":"text","theme":"basic","title":"文本","image":"assets/src/modules/chart/themes/text/basic/basic.png?24a91d8b","option":{"color":["#03a9f4","#90ed7d","#e2db1a","#f79726","#0677ff","#6b2eda","#30d209","#2647ff","#b121ef","#f32d2e"],"textStyle":{"color":"#fff"},"title":{"text":"文本内容","textStyle":{"textAlign":"center","gap":1,"display":"table-cell","verticalAlign":"middle","fontSize":14,"color":"#fff","opacity":100}}}},"sizex":22,"sizey":8,"col":43,"row":32,"setting":{"title":"","fontSize":12,"textColor":"#ffffff","textColorOpacity":100,"borderColor":"","borderColorOpacity":100,"borderSize":1,"backgroundType":1,"backgroundColor":"","backgroundOpacity":100,"backgroundImage":""},"styleSetting":{"text":"文本内容","textStyle_letterSpacing":1,"textStyle_textAlign":"center","textStyle_verticalAlign":"middle","textStyle_fontSize":14,"textStyle_color":"#fff"}}],"deleteWidgets":[]}
+    ${response}    nreq    ${host}/api/widgets    post    data=${data}
+    Should Be Equal As Integers    200    ${response.status_code}
+    ${errcode}    get tree    ${response.content}    errCode
+    ${bid_db}    con db    select id from `widget` where fuu_id ='${fuid}' and window_id ='${接口测试窗口id}'
+    ${action1}    get tree    ${response.content}    data.${fuid}.action
+    ${action2}    get tree    ${response.content}    data.${接口测试部件fid}.action
+    ${bid}    get tree    ${response.content}    data.${fuid}.buuid
+    ${col_db}    con db    select col from `widget` where id='${接口测试部件id}'
+    ${row_db}    con db    select row from `widget` where id='${接口测试部件id}'
+    ${id}    get tree    ${response.content}    data.${接口测试部件fid}.buuid
+    Should Be Equal As Integers    200    ${errcode}
+    Should Be Equal As Strings    ${id}    ${接口测试部件id}
+    Should Be Equal As Integers    ${col}    ${col_db}
+    Should Be Equal As Integers    ${row}    ${row_db}
+    Should Be Equal As Strings    ${bid_db}    ${bid}
+    Should Be Equal As Strings    ${action1}    add
+    Should Be Equal As Strings    ${action2}    update
+    ${data1}    set variable    {"windowId":"${接口测试窗口id}","saveWidgets":[{"fuuid":"${接口测试部件fid}","buuid":"${接口测试部件id}","sizex":${sizex},"sizey":${sizey}}],"deleteWidgets":[{"fuuid":"${fuid}","buuid":"${bid}"}]}
+    ${response}    nreq    ${host}/api/widgets    post    data=${data1}
+    Should Be Equal As Integers    200    ${response.status_code}
+    ${errcode}    get tree    ${response.content}    errCode
+    ${action1}    get tree    ${response.content}    data.${fuid}.action
+    ${action2}    get tree    ${response.content}    data.${接口测试部件fid}.action
+    Should Be Equal As Strings    ${action1}    delete
+    Should Be Equal As Strings    ${action2}    update
+    Should Be Equal As Integers    200    ${errcode}
+    ${delid_db}    empty_db    select id from `widget` where fuu_id ='${fuid}' and window_id ='${接口测试窗口id}'
+    Should Be Equal As Integers    ${delid_db}    0
+    ${sizex_db}    con db    select sizex from `widget` where id='${接口测试部件id}'
+    ${sizey_db}    con db    select sizey from `widget` where id='${接口测试部件id}'
+    Should Be Equal As Integers    ${sizex}    ${sizex_db}
+    Should Be Equal As Integers    ${sizey}    ${sizey_db}
+    sleep    500ms

@@ -1,0 +1,8 @@
+*** Variables ***
+${host}           https://show.uyuntest.cn/show
+${email}          miaolj@uyunsoft.cn
+${passwd}         miaolj161208
+${接口测试窗口id}       3b645d781e3941c092d7a84256390bb8
+${接口测试部件id}       5160bb260a2e42198f7e292ca057a358
+${接口测试部件fid}      0bb1b1dca5e547a8f81ee24c68d0e665
+${租户id}           cad9c8fc5bcd4a97b527ea378f25ecb8

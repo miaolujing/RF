@@ -1,0 +1,7 @@
+*** Settings ***
+Library           RequestsLibrary
+Library           Collections
+Library           YamlLibrary
+Library           CustomLibrary
+
+*** Keywords ***
